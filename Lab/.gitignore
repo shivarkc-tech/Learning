@@ -33,7 +33,10 @@ secrets.tfvars
 secret.tfvars
 
 # ─────────────────────────────────────────────
-# macOS
+# SSH Keys — NEVER commit private keys
+# ─────────────────────────────────────────────
+*.pem
+*.pub
 # ─────────────────────────────────────────────
 .DS_Store
 .AppleDouble

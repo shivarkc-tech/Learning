@@ -24,8 +24,9 @@ instance_name   = "Demo Server"
 instance_type   = "t3.micro"
 ebs_volume_size = 8
 
-# SSH key pair — leave empty to rely on Session Manager only
-key_name = ""
+# SSH key pair
+key_name        = "Learning_Keypair"
+public_key_path = "./Learning_Keypair.pub"
 
 # Restrict this to your office / VPN IP in production, e.g. ["203.0.113.10/32"]
 allowed_ssh_cidrs   = ["0.0.0.0/0"]

@@ -63,7 +63,7 @@ variable "s3_versioning_enabled" {
 variable "instance_name" {
   description = "Name tag applied to the EC2 instance."
   type        = string
-  default     = "Demo Server"
+  default     = "Web Server"
 }
 
 variable "instance_type" {

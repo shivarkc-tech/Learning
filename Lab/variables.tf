@@ -42,7 +42,7 @@ variable "additional_tags" {
 variable "s3_bucket_name" {
   description = "Globally unique S3 bucket name."
   type        = string
-  default     = "Myfirstterraform-bucket-15062026"
+  default     = "terraform-learning-bucket-15062026"
 }
 
 variable "s3_force_destroy" {

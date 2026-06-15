@@ -20,7 +20,7 @@ s3_versioning_enabled = true
 # ─────────────────────────────────────────────
 # EC2
 # ─────────────────────────────────────────────
-instance_name   = "Demo Server"
+instance_name   = "Web Server"
 instance_type   = "t3.micro"
 ebs_volume_size = 8
 

@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────
+# Terraform
+# ─────────────────────────────────────────────
+
+# Local .terraform directory (downloaded providers — large binaries)
+.terraform/
+
+# Lock file is safe to commit — tracks exact provider versions
+# .terraform.lock.hcl   ← do NOT ignore this one
+
+# State files — contain sensitive data, never commit
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log
+crash.log
+crash.*.log
+
+# Override files (local developer overrides, not for sharing)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output files (can contain secrets)
+*.tfplan
+*.plan
+
+# Variable files that may contain secrets
+*.auto.tfvars
+secrets.tfvars
+secret.tfvars
+
+# ─────────────────────────────────────────────
+# macOS
+# ─────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ─────────────────────────────────────────────
+# Editor
+# ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

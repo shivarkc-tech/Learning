@@ -79,7 +79,7 @@ variable "ebs_volume_size" {
 }
 
 variable "key_name" {
-  description = "Name of an existing EC2 Key Pair for SSH access. Leave empty to skip."
+  description = "Name of the existing EC2 Key Pair in AWS to assign to the instance."
   type        = string
   default     = ""
 }

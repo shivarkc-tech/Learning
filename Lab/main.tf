@@ -27,6 +27,13 @@ data "aws_ami" "ubuntu" {
 data "aws_caller_identity" "current" {}
 
 # ═══════════════════════════════════════════════════════════════
+# KEY PAIR
+# ═══════════════════════════════════════════════════════════════
+
+# References the existing keypair already in AWS — no re-import needed
+# The key_name variable must match exactly what exists in your AWS account
+
+# ═══════════════════════════════════════════════════════════════
 # S3 BUCKET
 # ═══════════════════════════════════════════════════════════════
 
@@ -131,7 +138,7 @@ resource "aws_iam_instance_profile" "ssm_profile" {
 
 resource "aws_security_group" "instance" {
   name        = "${var.project}-${var.environment}-instance-sg"
-  description = "Security group for Demo Server — SSH ingress + unrestricted egress"
+  description = "Security group for Demo Server - SSH ingress + unrestricted egress"
   vpc_id      = aws_vpc.main.id   # Attach to the custom VPC
 
   tags = merge(local.common_tags, var.additional_tags, {

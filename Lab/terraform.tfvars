@@ -13,7 +13,7 @@ additional_tags = {
 # ─────────────────────────────────────────────
 # S3
 # ─────────────────────────────────────────────
-s3_bucket_name        = "Myfirstterraform-bucket-15062026"
+s3_bucket_name        = "myfirstterraform-bucket-15062026"
 s3_force_destroy      = false
 s3_versioning_enabled = true
 
@@ -24,9 +24,8 @@ instance_name   = "Demo Server"
 instance_type   = "t3.micro"
 ebs_volume_size = 8
 
-# SSH key pair
-key_name        = "Learning_Keypair"
-public_key_path = "./Learning_Keypair.pub"
+# SSH key pair — must match the exact name in your AWS console
+key_name = "Learning_Keypair"
 
 # Restrict this to your office / VPN IP in production, e.g. ["203.0.113.10/32"]
 allowed_ssh_cidrs   = ["0.0.0.0/0"]

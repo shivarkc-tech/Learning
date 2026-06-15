@@ -41,7 +41,7 @@ output "instance_ami" {
 
 output "ssh_command" {
   description = "SSH command to connect to the instance."
-  value       = var.public_key_path != "" ? "ssh -i ./Learning_Keypair.pem ubuntu@${aws_instance.demo.public_ip}" : "No key pair configured — use Session Manager instead."
+  value       = var.key_name != "" ? "ssh -i ./Learning_Keypair.pem ubuntu@${aws_instance.demo.public_ip}" : "No key pair configured - use Session Manager instead."
 }
 
 output "ssm_connect_command" {

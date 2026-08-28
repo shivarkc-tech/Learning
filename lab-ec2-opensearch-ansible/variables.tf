@@ -54,7 +54,7 @@ variable "jenkins_instance_type" {
 variable "root_volume_size" {
   description = "Root EBS volume size in GiB."
   type        = number
-  default     = 8
+  default     = 10
 }
 
 variable "jenkins_root_volume_size" {

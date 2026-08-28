@@ -54,17 +54,17 @@ variable "jenkins_instance_type" {
 variable "root_volume_size" {
   description = "Root EBS volume size in GiB."
   type        = number
-  default     = 30
+  default     = 8
 }
 
 variable "jenkins_root_volume_size" {
   description = "Root EBS volume size in GiB for the Jenkins lab server."
   type        = number
-  default     = 20
+  default     = 10
 }
 
 variable "data_volume_size" {
   description = "OpenSearch data EBS volume size in GiB."
   type        = number
-  default     = 50
+  default     = 10
 }

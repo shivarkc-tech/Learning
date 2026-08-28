@@ -1,0 +1,251 @@
+---
+- name: Install OpenSearch on lab EC2
+  hosts: opensearch
+  become: true
+
+  pre_tasks:
+    - name: Wait for SSH to become ready
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - xfsprogs
+        state: present
+
+  tasks:
+    - name: Create APT keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Download OpenSearch release key
+      ansible.builtin.get_url:
+        url: https://artifacts.opensearch.org/publickeys/opensearch.pgp
+        dest: /tmp/opensearch-2x.pgp
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Convert OpenSearch release key to apt keyring
+      ansible.builtin.command:
+        cmd: gpg --dearmor --batch --yes -o /etc/apt/keyrings/opensearch.gpg /tmp/opensearch-2x.pgp
+
+    - name: Make OpenSearch apt keyring readable
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/opensearch.gpg
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Add OpenSearch APT repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/opensearch-2.x.list
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          deb [signed-by=/etc/apt/keyrings/opensearch.gpg] https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main
+
+    - name: Add OpenSearch Dashboards APT repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/opensearch-dashboards-2.x.list
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          deb [signed-by=/etc/apt/keyrings/opensearch.gpg] https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/2.x/apt stable main
+
+    - name: Refresh apt cache after adding OpenSearch repository
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install OpenSearch
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DEBIAN_FRONTEND=noninteractive \
+        OPENSEARCH_INITIAL_ADMIN_PASSWORD='{{ opensearch_admin_password }}' \
+        apt-get install -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "opensearch={{ opensearch_version }}"
+      args:
+        executable: /bin/bash
+      register: opensearch_install
+      changed_when: "'Setting up opensearch' in opensearch_install.stdout or 'newly installed' in opensearch_install.stdout"
+
+    - name: Install OpenSearch Dashboards
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "opensearch-dashboards={{ opensearch_version }}"
+      args:
+        executable: /bin/bash
+      register: dashboards_install
+      changed_when: "'Setting up opensearch-dashboards' in dashboards_install.stdout or 'newly installed' in dashboards_install.stdout"
+
+    - name: Detect OpenSearch data device
+      ansible.builtin.shell: |
+        set -euo pipefail
+        for device in {{ opensearch_data_device_candidates | join(' ') }}; do
+          if [ -b "$device" ]; then
+            readlink -f "$device"
+            exit 0
+          fi
+        done
+        exit 1
+      args:
+        executable: /bin/bash
+      register: detected_data_device
+      changed_when: false
+
+    - name: Create filesystem on data device
+      community.general.filesystem:
+        fstype: xfs
+        dev: "{{ detected_data_device.stdout }}"
+
+    - name: Mount OpenSearch data volume
+      ansible.posix.mount:
+        path: "{{ opensearch_data_mount }}"
+        src: "{{ detected_data_device.stdout }}"
+        fstype: xfs
+        opts: noatime,nodiratime
+        state: mounted
+
+    - name: Set ownership on OpenSearch data directory
+      ansible.builtin.file:
+        path: "{{ opensearch_data_mount }}"
+        state: directory
+        owner: opensearch
+        group: opensearch
+        mode: "0750"
+
+    - name: Configure vm.max_map_count
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: "262144"
+        state: present
+        reload: true
+
+    - name: Configure OpenSearch file and memory limits
+      ansible.builtin.copy:
+        dest: /etc/security/limits.d/opensearch.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          opensearch soft nofile 65536
+          opensearch hard nofile 65536
+          opensearch soft memlock unlimited
+          opensearch hard memlock unlimited
+
+    - name: Create systemd override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/opensearch.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure systemd limits
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/opensearch.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          LimitMEMLOCK=infinity
+          LimitNOFILE=65536
+      notify: Restart OpenSearch
+
+    - name: Configure JVM heap
+      ansible.builtin.template:
+        src: ../templates/heap.options.j2
+        dest: /etc/opensearch/jvm.options.d/heap.options
+        owner: root
+        group: opensearch
+        mode: "0640"
+      notify: Restart OpenSearch
+
+    - name: Configure OpenSearch single-node lab
+      ansible.builtin.template:
+        src: ../templates/opensearch.yml.j2
+        dest: /etc/opensearch/opensearch.yml
+        owner: root
+        group: opensearch
+        mode: "0640"
+      notify: Restart OpenSearch
+
+    - name: Configure OpenSearch Dashboards
+      ansible.builtin.template:
+        src: ../templates/opensearch_dashboards.yml.j2
+        dest: /etc/opensearch-dashboards/opensearch_dashboards.yml
+        owner: root
+        group: opensearch-dashboards
+        mode: "0640"
+      notify: Restart OpenSearch Dashboards
+
+    - name: Enable and start OpenSearch
+      ansible.builtin.systemd:
+        name: opensearch
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for OpenSearch HTTP API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ opensearch_http_port }}"
+        method: GET
+        status_code: 200
+      register: opensearch_api
+      retries: 30
+      delay: 10
+      until: opensearch_api.status == 200
+
+    - name: Show OpenSearch endpoint
+      ansible.builtin.debug:
+        msg: "OpenSearch is running at http://{{ ansible_host }}:{{ opensearch_http_port }}"
+
+    - name: Enable and start OpenSearch Dashboards
+      ansible.builtin.systemd:
+        name: opensearch-dashboards
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for OpenSearch Dashboards
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ opensearch_dashboards_port }}/api/status"
+        method: GET
+        status_code: [200, 302]
+      register: dashboards_status
+      retries: 30
+      delay: 10
+      until: dashboards_status.status in [200, 302]
+
+    - name: Show OpenSearch Dashboards endpoint
+      ansible.builtin.debug:
+        msg: "OpenSearch Dashboards is running at http://{{ ansible_host }}:{{ opensearch_dashboards_port }}"
+
+  handlers:
+    - name: Restart OpenSearch
+      ansible.builtin.systemd:
+        name: opensearch
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart OpenSearch Dashboards
+      ansible.builtin.systemd:
+        name: opensearch-dashboards
+        state: restarted
+        daemon_reload: true

@@ -1,0 +1,12 @@
+---
+opensearch_cluster_name: lab-opensearch-cluster
+opensearch_node_name: lab-node-1
+opensearch_version: "2.15.0"
+opensearch_admin_password: "GkLabSearch@2026!"
+opensearch_heap_size: "2g"
+opensearch_http_port: 9200
+opensearch_dashboards_port: 5601
+opensearch_data_mount: /var/lib/opensearch
+opensearch_data_device_candidates:
+  - /dev/xvdf
+  - /dev/nvme1n1
